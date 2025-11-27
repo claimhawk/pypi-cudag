@@ -112,18 +112,19 @@ SYSTEM_PROMPT_COMPACT = _build_compact_prompt()
 
 # Available prompt styles
 PROMPT_STYLES = {
-    "osworld": CUA_SYSTEM_PROMPT,
+    "computer-use": CUA_SYSTEM_PROMPT,  # Primary key
+    "cua": CUA_SYSTEM_PROMPT,  # Alias
     "compact": SYSTEM_PROMPT_COMPACT,
 }
 
-PromptStyle = Literal["osworld", "compact"]
+PromptStyle = Literal["computer-use", "cua", "compact"]
 
 
-def get_system_prompt(style: PromptStyle | str = "compact") -> str:
+def get_system_prompt(style: PromptStyle | str = "computer-use") -> str:
     """Get a system prompt by style name.
 
     Args:
-        style: Prompt style name or "osworld" or "compact"
+        style: Prompt style name - use "computer-use" for CUA prompt
 
     Returns:
         System prompt string

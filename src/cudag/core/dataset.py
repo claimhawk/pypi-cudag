@@ -38,8 +38,8 @@ class DatasetConfig:
     train_split: float = 0.8
     """Fraction of data for training (rest is test/val)."""
 
-    system_prompt: str = "compact"
-    """System prompt style: "osworld", "compact", or custom."""
+    system_prompt: str = "computer-use"
+    """System prompt style: "computer-use", "compact", or custom."""
 
     output_dir: Path | None = None
     """Output directory (auto-generated if None)."""
@@ -68,6 +68,9 @@ class DatasetConfig:
     annotation_enabled: bool = True
     """Whether to generate annotated test images."""
 
+    annotation_per_type: dict[str, int] = field(default_factory=dict)
+    """Number of annotations per task type. Overrides annotation_ratio when set."""
+
     def __post_init__(self) -> None:
         """Set default output directory if not provided."""
         if self.output_dir is None:
@@ -87,7 +90,7 @@ class DatasetConfig:
             seed=data.get("seed", 42),
             task_counts=data.get("tasks", {}),
             train_split=data.get("splits", {}).get("train", 0.8),
-            system_prompt=data.get("system_prompt", "compact"),
+            system_prompt=data.get("system_prompt", "computer-use"),
             output_dir=Path(data["output_dir"]) if "output_dir" in data else None,
             image_format=data.get("output", {}).get("image_format", "png"),
             image_quality=data.get("output", {}).get("image_quality", 95),
@@ -97,6 +100,7 @@ class DatasetConfig:
             test_tolerance=_parse_tolerance(data.get("test", {}).get("tolerance", [10, 10])),
             annotation_ratio=data.get("annotation", {}).get("ratio", 0.1),
             annotation_enabled=data.get("annotation", {}).get("enabled", True),
+            annotation_per_type=data.get("annotation", {}).get("per_type", {}),
         )
 
 
@@ -143,22 +147,21 @@ def _wrap_text(text: str, font: Any, max_width: int, draw: Any) -> list[str]:
 
 def annotate_test_image(
     image_path: Path,
-    action: str,
+    tool_calls: list[dict[str, Any]],
     pixel_coords: tuple[int, int],
     prompt: str,
     output_path: Path | None = None,
 ) -> Path:
-    """Annotate a test image with action, coordinates, and prompt.
+    """Annotate a test image with tool call output and prompt.
 
     Draws:
     - Red crosshair at the click location
-    - Action label near the click point
-    - Extends canvas with white bar at bottom for prompt text (with wrapping)
+    - Extends canvas with white bar at bottom for prompt and <tool_call> output
 
     Args:
         image_path: Path to the original test image.
-        action: The action type (e.g., "left_click").
-        pixel_coords: The (x, y) pixel coordinates of the action.
+        tool_calls: List of tool call dicts (from ToolCall.to_dict()).
+        pixel_coords: The (x, y) pixel coordinates for crosshair.
         prompt: The user prompt text to display.
         output_path: Where to save the annotated image. If None, saves
                      to same directory with "_annotated" suffix.
@@ -172,11 +175,14 @@ def annotate_test_image(
     original = Image.open(image_path).convert("RGB")
     orig_width, orig_height = original.size
 
-    # Try to load a font, fall back to default
+    # Try to load a monospace font for JSON, fall back to default
     try:
-        font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 12)
+        font = ImageFont.truetype("/System/Library/Fonts/Menlo.ttc", 11)
     except (OSError, IOError):
-        font = ImageFont.load_default()
+        try:
+            font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 11)
+        except (OSError, IOError):
+            font = ImageFont.load_default()
 
     # Create temporary draw to measure text for wrapping
     temp_img = Image.new("RGB", (1, 1))
@@ -186,13 +192,24 @@ def annotate_test_image(
     margin = 10
     max_text_width = orig_width - margin * 2
     prompt_text = f"Prompt: {prompt}"
-    wrapped_lines = _wrap_text(prompt_text, font, max_text_width, temp_draw)
+    wrapped_prompt = _wrap_text(prompt_text, font, max_text_width, temp_draw)
 
-    # Calculate bar height based on number of lines (line height ~18px + action line)
-    line_height = 18
-    bar_height = (len(wrapped_lines) * line_height) + line_height + 8  # +8 for padding
+    # Format tool calls as prettified JSON with <tool_call> tags
+    tool_call_lines: list[str] = []
+    for tc in tool_calls:
+        tool_call_lines.append("<tool_call>")
+        # Pretty print JSON with 2-space indent
+        pretty_json = json.dumps(tc, indent=2)
+        for json_line in pretty_json.split("\n"):
+            tool_call_lines.append(json_line)
+        tool_call_lines.append("</tool_call>")
 
-    # Create new canvas with extra height for prompt and action info
+    # Calculate bar height based on number of lines
+    line_height = 14
+    total_lines = len(wrapped_prompt) + len(tool_call_lines) + 1  # +1 for spacing
+    bar_height = (total_lines * line_height) + 12  # +12 for padding
+
+    # Create new canvas with extra height for prompt and tool call output
     new_height = orig_height + bar_height
     img = Image.new("RGB", (orig_width, new_height), (255, 255, 255))
 
@@ -218,13 +235,21 @@ def annotate_test_image(
 
     # Draw wrapped prompt text in the extended area below the original image
     current_y = orig_height + 4
-    for line in wrapped_lines:
+    for line in wrapped_prompt:
         draw.text((5, current_y), line, fill=(0, 0, 0), font=font)
         current_y += line_height
 
-    # Draw action and coordinates below the prompt
-    action_text = f"Action: {action}  Coords: ({x}, {y})"
-    draw.text((5, current_y), action_text, fill=(255, 0, 0), font=font)
+    # Add spacing
+    current_y += 4
+
+    # Draw tool call output (model response)
+    for line in tool_call_lines:
+        # Color the XML tags differently
+        if line.startswith("<tool_call>") or line.startswith("</tool_call>"):
+            draw.text((5, current_y), line, fill=(128, 0, 128), font=font)  # Purple for tags
+        else:
+            draw.text((5, current_y), line, fill=(0, 100, 0), font=font)  # Dark green for JSON
+        current_y += line_height
 
     # Determine output path
     if output_path is None:
@@ -443,10 +468,11 @@ class DatasetBuilder:
             index += 1
             task_idx += 1
 
-        # Generate annotations - stratified by task type (2 per type)
+        # Generate annotations - stratified by task type
         annotated_count = 0
         if self.config.annotation_enabled:
-            annotations_per_type = 2
+            # Default annotations per type (2 for most, can be overridden)
+            default_annotations = 2
 
             # Group indices by task type
             indices_by_type: dict[str, list[int]] = {}
@@ -456,11 +482,13 @@ class DatasetBuilder:
                     indices_by_type[task_type] = []
                 indices_by_type[task_type].append(idx)
 
-            # Select indices to annotate (2 per task type)
+            # Select indices to annotate (configurable per task type)
             indices_to_annotate: set[int] = set()
             for task_type, indices in indices_by_type.items():
+                # Get count for this task type from config, default to 2
+                count = self.config.annotation_per_type.get(task_type, default_annotations)
                 # Take first N indices for this task type
-                for idx in indices[:annotations_per_type]:
+                for idx in indices[:count]:
                     indices_to_annotate.add(idx)
 
             for idx in sorted(indices_to_annotate):
@@ -468,15 +496,21 @@ class DatasetBuilder:
                     continue
                 test_case = raw_test_cases[idx]
 
-                # Get action and coordinates
-                action = test_case.expected_action.get("arguments", {}).get("action", "click")
+                # Get pixel coordinates for crosshair
                 pixel_coords = test_case.pixel_coords or (0, 0)
+
+                # Build tool_calls list from expected_action and any additional actions
+                tool_calls = [test_case.expected_action]
+
+                # Check for additional tool calls in metadata (e.g., type action for textfields)
+                if "additional_tool_calls" in test_case.metadata:
+                    tool_calls.extend(test_case.metadata["additional_tool_calls"])
 
                 # Generate annotated image
                 annotated_path = annotated_dir / f"{test_case.test_id}_annotated.png"
                 annotate_test_image(
                     image_path=test_case.screenshot,
-                    action=action,
+                    tool_calls=tool_calls,
                     pixel_coords=pixel_coords,
                     prompt=test_case.prompt,
                     output_path=annotated_path,

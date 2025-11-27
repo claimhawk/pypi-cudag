@@ -338,9 +338,13 @@ def _write_example_task(project_dir: Path, module_name: str) -> None:
 
         Key insight: One rendered image can produce MULTIPLE training samples.
         This is more efficient than generating a new image for each sample.
+
+        IMPORTANT: All coordinates in training data MUST be normalized RU (0-1000).
+        Use normalize_coord() before passing to ToolCall.
         """
 
         from cudag.core import BaseTask, TaskContext, TaskSample, TestCase
+        from cudag.core.coords import normalize_coord
         from cudag.prompts.tools import ToolCall
 
         from state import {state_class}
@@ -371,24 +375,30 @@ def _write_example_task(project_dir: Path, module_name: str) -> None:
                 samples = []
 
                 # 2. Derive multiple samples from this one image
+                # IMPORTANT: Always normalize pixel coords before ToolCall!
+
                 # Sample 1: Click first target
+                pixel_coords_1 = (400, 300)
+                norm_coords_1 = normalize_coord(pixel_coords_1, image.size)
                 samples.append(TaskSample(
                     id=self.build_id(ctx, "_target1"),
                     image_path=image_path,
                     human_prompt="Click the first item",
-                    tool_call=ToolCall.left_click((400, 300)),
-                    pixel_coords=(400, 300),
+                    tool_call=ToolCall.left_click(norm_coords_1),  # NORMALIZED!
+                    pixel_coords=pixel_coords_1,
                     metadata={{"task_type": self.task_type, "target": "first"}},
                     image_size=image.size,
                 ))
 
                 # Sample 2: Click second target (SAME IMAGE)
+                pixel_coords_2 = (500, 400)
+                norm_coords_2 = normalize_coord(pixel_coords_2, image.size)
                 samples.append(TaskSample(
                     id=self.build_id(ctx, "_target2"),
                     image_path=image_path,
                     human_prompt="Click the second item",
-                    tool_call=ToolCall.left_click((500, 400)),
-                    pixel_coords=(500, 400),
+                    tool_call=ToolCall.left_click(norm_coords_2),  # NORMALIZED!
+                    pixel_coords=pixel_coords_2,
                     metadata={{"task_type": self.task_type, "target": "second"}},
                     image_size=image.size,
                 ))
@@ -438,8 +448,8 @@ def _write_dataset_config(project_dir: Path, project_name: str) -> None:
         splits:
           train: 0.8
 
-        # System prompt style: "osworld" or "compact"
-        system_prompt: compact
+        # System prompt style
+        system_prompt: computer-use
 
         # Output settings
         output:
