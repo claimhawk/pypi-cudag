@@ -14,6 +14,16 @@ from cudag.core.coords import (
     pixel_from_normalized,
 )
 from cudag.core.grid import Grid, GridCell, GridGeometry
+from cudag.core.icon import (
+    APP_ICON_LARGE,
+    APP_ICON_SMALL,
+    DESKTOP_ICON,
+    TASKBAR_ICON,
+    TOOLBAR_ICON,
+    IconLayout,
+    IconPlacement,
+    IconSpec,
+)
 from cudag.core.dataset import DatasetBuilder, DatasetConfig
 from cudag.core.models import (
     # Classes
@@ -129,6 +139,15 @@ __all__ = [
     "Grid",
     "GridCell",
     "GridGeometry",
+    # Icons
+    "IconSpec",
+    "IconPlacement",
+    "IconLayout",
+    "DESKTOP_ICON",
+    "TASKBAR_ICON",
+    "TOOLBAR_ICON",
+    "APP_ICON_LARGE",
+    "APP_ICON_SMALL",
     # State
     "BaseState",
     "ScrollState",
