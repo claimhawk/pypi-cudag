@@ -13,6 +13,7 @@ from cudag.core.coords import (
     normalize_coord,
     pixel_from_normalized,
 )
+from cudag.core.canvas import CanvasConfig, RegionConfig
 from cudag.core.grid import Grid, GridCell, GridGeometry
 from cudag.core.icon import (
     APP_ICON_LARGE,
@@ -135,6 +136,9 @@ __all__ = [
     "grid",
     "scrollable",
     "dropdown",
+    # Canvas/Region
+    "CanvasConfig",
+    "RegionConfig",
     # Grid
     "Grid",
     "GridCell",
