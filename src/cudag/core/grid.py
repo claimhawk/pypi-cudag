@@ -73,6 +73,46 @@ class GridGeometry:
         """Grid bounds as (x, y, width, height)."""
         return (self.x, self.y, self.width, self.height)
 
+    def tolerance_pixels(self, padding_ratio: float = 0.15) -> tuple[int, int]:
+        """Natural tolerance in pixels based on cell size.
+
+        Args:
+            padding_ratio: Padding on each side as ratio of cell size (default 15%)
+
+        Returns:
+            (x_tolerance, y_tolerance) in pixels
+        """
+        # Tolerance is cell size minus padding on each side
+        tol_ratio = 1.0 - (2 * padding_ratio)  # 70% for 15% padding
+        return (int(self.cell_width * tol_ratio), int(self.cell_height * tol_ratio))
+
+    def tolerance_ru(
+        self,
+        image_size: tuple[int, int],
+        padding_ratio: float = 0.15,
+    ) -> tuple[int, int]:
+        """Natural tolerance in RU (normalized 0-1000) based on cell size.
+
+        Calculates tolerance as a percentage of the cell size in normalized coordinates.
+        A 15% padding on each side means 70% tolerance.
+
+        Args:
+            image_size: (width, height) of the image in pixels
+            padding_ratio: Padding on each side as ratio of cell size (default 15%)
+
+        Returns:
+            (x_tolerance, y_tolerance) in RU units (0-1000 scale)
+
+        Examples:
+            For a 24x15 cell on 224x208 image with 15% padding:
+            - x: (24/224 * 1000) * 0.7 = ~75 RU
+            - y: (15/208 * 1000) * 0.7 = ~50 RU
+        """
+        tol_ratio = 1.0 - (2 * padding_ratio)  # 70% for 15% padding
+        x_ru = (self.cell_width / image_size[0]) * 1000 * tol_ratio
+        y_ru = (self.cell_height / image_size[1]) * 1000 * tol_ratio
+        return (int(x_ru), int(y_ru))
+
     def cell_position(self, row: int, col: int) -> tuple[int, int]:
         """Get top-left position of a cell.
 
