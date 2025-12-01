@@ -33,11 +33,11 @@ if [[ "$DRY_RUN" == "true" ]]; then
     echo ""
 fi
 
-# Run the dataset generation
+# Run the dataset generation using uv run (uses pyproject.toml dependencies)
 if [[ ${#EXTRA_ARGS[@]} -gt 0 ]]; then
-    uvx --with cudag --with pillow python generator.py "${EXTRA_ARGS[@]}"
+    uv run python generator.py "${EXTRA_ARGS[@]}"
 else
-    uvx --with cudag --with pillow python generator.py
+    uv run python generator.py
 fi
 
 if [[ $? -ne 0 ]]; then

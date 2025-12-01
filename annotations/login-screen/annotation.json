@@ -1,0 +1,97 @@
+{
+  "screenName": "Timeline_1_01_00_21_11_cropped",
+  "imageSize": [
+    502,
+    369
+  ],
+  "imagePath": "Timeline 1_01_00_21_11.jpg",
+  "elements": [
+    {
+      "id": "el_1764278532765",
+      "type": "dropdown",
+      "bbox": {
+        "x": 70,
+        "y": 62,
+        "width": 120,
+        "height": 291
+      },
+      "rows": 22,
+      "cols": 1,
+      "text": "user",
+      "maskColor": "#ffffff"
+    },
+    {
+      "id": "el_1764278671022",
+      "type": "textinput",
+      "bbox": {
+        "x": 273,
+        "y": 61,
+        "width": 199,
+        "height": 16
+      },
+      "text": "password"
+    },
+    {
+      "id": "el_1764278692000",
+      "type": "button",
+      "bbox": {
+        "x": 419,
+        "y": 297,
+        "width": 66,
+        "height": 21
+      },
+      "text": "ok"
+    },
+    {
+      "id": "el_1764278702048",
+      "type": "button",
+      "bbox": {
+        "x": 416,
+        "y": 332,
+        "width": 72,
+        "height": 26
+      },
+      "text": "exit"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_1764281331389",
+      "prompt": "Select [user] from the list",
+      "action": "left_click",
+      "targetElementId": "el_1764278532765"
+    },
+    {
+      "id": "task_1764281366656",
+      "prompt": "Click the password field and type \"PASSWORD\".",
+      "action": "left_click",
+      "targetElementId": "el_1764278671022",
+      "priorStates": [
+        {
+          "elementId": "el_1764278532765",
+          "hasSelection": true
+        }
+      ]
+    },
+    {
+      "id": "task_1764281698749",
+      "prompt": "Click the ok button",
+      "action": "left_click",
+      "targetElementId": "el_1764278692000",
+      "priorStates": [
+        {
+          "elementId": "el_1764278532765",
+          "hasSelection": true
+        },
+        {
+          "elementId": "el_1764278671022",
+          "filled": true
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "sourceApp": "",
+    "screenType": ""
+  }
+}

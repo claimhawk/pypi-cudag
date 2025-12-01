@@ -1,0 +1,56 @@
+{
+  "screenName": "appointment_screen",
+  "imageSize": [
+    1640,
+    930
+  ],
+  "imagePath": "appointment-screen.png",
+  "elements": [
+    {
+      "id": "el_1764300769348",
+      "type": "grid",
+      "bbox": {
+        "x": 45,
+        "y": 27,
+        "width": 1542,
+        "height": 859
+      },
+      "rows": 1,
+      "cols": 18,
+      "text": "appt-grid",
+      "maskColor": "#dbdbdb"
+    },
+    {
+      "id": "el_1764300829040",
+      "type": "grid",
+      "bbox": {
+        "x": 46,
+        "y": 0,
+        "width": 1539,
+        "height": 28
+      },
+      "rows": 1,
+      "cols": 18,
+      "text": "appt-header",
+      "maskColor": "#f0f0f0"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_1764344437793",
+      "prompt": "Click an appointment with a grey background and a grey status circle.",
+      "action": "left_click",
+      "targetElementId": "el_1764300769348"
+    },
+    {
+      "id": "task_1764344528987",
+      "prompt": "Hover the mouse over [appt] to see the pop up patient data",
+      "targetElementId": "el_1764300769348",
+      "action": "mouse_move"
+    }
+  ],
+  "metadata": {
+    "sourceApp": "",
+    "screenType": ""
+  }
+}

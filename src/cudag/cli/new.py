@@ -44,6 +44,7 @@ def create_project(name: str, parent_dir: Path) -> Path:
     _write_screen(project_dir, module_name)
     _write_state(project_dir, module_name)
     _write_renderer(project_dir, module_name)
+    _write_generator(project_dir, module_name)
     _write_models_init(project_dir, module_name)
     _write_tasks_init(project_dir)
     _write_example_task(project_dir, module_name)
@@ -268,6 +269,97 @@ def _write_renderer(project_dir: Path, module_name: str) -> None:
                 return image, metadata
     ''')
     (project_dir / "renderer.py").write_text(content)
+
+
+def _write_generator(project_dir: Path, module_name: str) -> None:
+    """Write generator.py - main entry point for dataset generation."""
+    renderer_class = "".join(word.title() for word in module_name.split("_")) + "Renderer"
+
+    content = dedent(f'''\
+        # Copyright (c) 2025 Tylt LLC. All rights reserved.
+        # Derivative works may be released by researchers,
+        # but original files may not be redistributed or used beyond research purposes.
+
+        """Dataset generator for {module_name}.
+
+        Usage:
+            python generator.py
+            python generator.py --config config/dataset.yaml
+        """
+
+        import argparse
+        from datetime import datetime
+        from pathlib import Path
+
+        from cudag.core import DatasetBuilder, DatasetConfig
+
+        from renderer import {renderer_class}
+        from tasks.example_task import ExampleTask
+
+
+        def get_researcher_name() -> str | None:
+            """Get researcher name from .researcher file if it exists."""
+            researcher_file = Path(".researcher")
+            if researcher_file.exists():
+                content = researcher_file.read_text().strip()
+                for line in content.split("\\n"):
+                    if line.startswith("Name:"):
+                        return line.split(":", 1)[1].strip().lower()
+            return None
+
+
+        def main() -> None:
+            """Run dataset generation."""
+            parser = argparse.ArgumentParser(description="Generate dataset")
+            parser.add_argument(
+                "--config",
+                type=Path,
+                default=Path("config/dataset.yaml"),
+                help="Path to dataset config YAML",
+            )
+            args = parser.parse_args()
+
+            # Load config
+            config = DatasetConfig.from_yaml(args.config)
+
+            # Build dataset name with timestamp
+            researcher = get_researcher_name()
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            if researcher:
+                dataset_name = f"{{config.name_prefix}}-{{researcher}}-{{timestamp}}"
+            else:
+                dataset_name = f"{{config.name_prefix}}_{{timestamp}}"
+
+            # Override output_dir with new naming
+            config.output_dir = Path("datasets") / dataset_name
+
+            print(f"Loaded config: {{config.name_prefix}}")
+            print(f"Tasks: {{config.task_counts}}")
+
+            # Initialize renderer
+            renderer = {renderer_class}(assets_dir=Path("assets"))
+            renderer.load_assets()
+
+            # Create tasks - add your tasks here
+            tasks = [
+                ExampleTask(config=config, renderer=renderer),
+                # Add more tasks as needed
+            ]
+
+            # Build dataset
+            builder = DatasetBuilder(config=config, tasks=tasks)
+            output_dir = builder.build()
+
+            # Build tests
+            builder.build_tests()
+
+            print(f"\\nDataset generated at: {{output_dir}}")
+
+
+        if __name__ == "__main__":
+            main()
+    ''')
+    (project_dir / "generator.py").write_text(content)
 
 
 def _write_models_init(project_dir: Path, module_name: str) -> None:
