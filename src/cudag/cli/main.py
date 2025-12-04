@@ -86,6 +86,50 @@ def upload(dataset_dir: str) -> None:
     click.echo("Upload not yet implemented")
 
 
+@cli.command()
+@click.argument("dataset_dir", type=click.Path(exists=True))
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Show all errors (default: first 10)",
+)
+def validate(dataset_dir: str, verbose: bool) -> None:
+    """Validate a dataset against the CUDAG schema.
+
+    DATASET_DIR is the path to the generated dataset directory.
+
+    Checks:
+    - Required filesystem structure (images/, test/, etc.)
+    - Training record schema (data.jsonl, train.jsonl, val.jsonl)
+    - Test record schema (test/test.json)
+    - Image path validity (all referenced images exist)
+
+    Exit codes:
+    - 0: Dataset is valid
+    - 1: Validation errors found
+    """
+    from cudag.validation import validate_dataset
+
+    dataset_path = Path(dataset_dir)
+    errors = validate_dataset(dataset_path)
+
+    if not errors:
+        click.secho(f"Dataset valid: {dataset_dir}", fg="green")
+        raise SystemExit(0)
+
+    # Show errors
+    click.secho(f"Found {len(errors)} validation error(s):", fg="red")
+    display_errors = errors if verbose else errors[:10]
+    for error in display_errors:
+        click.echo(f"  {error}")
+
+    if not verbose and len(errors) > 10:
+        click.echo(f"  ... and {len(errors) - 10} more (use -v to see all)")
+
+    raise SystemExit(1)
+
+
 @cli.group()
 def eval() -> None:
     """Evaluation commands."""

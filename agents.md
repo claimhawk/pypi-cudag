@@ -17,8 +17,24 @@ This is CUDAG (Computer Use Dataset Action Generator) - the framework for creati
 
 ```bash
 pip install -e .
-cudag new my-generator  # Create new generator
+cudag new my-generator       # Create new generator
+cudag validate <dataset>     # Validate dataset against schema
 ```
+
+## Dataset Schema
+
+See `docs/DATASET_SCHEMA.md` for the complete dataset schema definition.
+
+Validation checks:
+- Required filesystem structure (images/, test/, etc.)
+- Training record schema (data.jsonl, train.jsonl, val.jsonl)
+- Test record schema (test/test.json)
+- Image path validity (all referenced images exist)
+
+Schema files:
+- `src/cudag/schemas/train_record.schema.json` - Training record JSON Schema
+- `src/cudag/schemas/test_record.schema.json` - Test record JSON Schema
+- `src/cudag/schemas/filesystem.json` - Filesystem structure definition
 
 ## Coordinate System
 
